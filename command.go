@@ -20,7 +20,7 @@ func NewCmdFlags() *CmdFlags {
 	cf := CmdFlags{}
 
 	flag.StringVar(&cf.Add, "add", "", "Add a new todo specify title")
-	flag.StringVar(&cf.Edit, "Edit", "", "Edit a by index & specify a new title. id:new_title")
+	flag.StringVar(&cf.Edit, "edit", "", "Edit a by index & specify a new title. id:new_title")
 	flag.IntVar(&cf.Del, "delete", -1, "Specify a todo by index to delete")
 	flag.IntVar(&cf.Toggle, "toggle", -1, "Specify a todo by index to toggle")
 	flag.BoolVar(&cf.List, "list", false, "List all todos")
@@ -35,7 +35,7 @@ func (cf *CmdFlags) Execute(todos *Todos) {
 	case cf.List:
 		todos.print()
 	case cf.Add != "":
-		todos.print()
+		todos.add(cf.Add)
 	case cf.Edit != "":
 		parts := strings.SplitN(cf.Edit, ":", 2)
 		if len(parts) != 2 {
