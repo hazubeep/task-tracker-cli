@@ -10,46 +10,50 @@ import (
 	"github.com/aquasecurity/table"
 )
 
+type Status string
+
+const (
+	StatusTodo       Status = "todo"
+	StatusInProgress Status = "in_progress"
+	StatusDone       Status = "done"
+)
+
 type Todo struct {
-	Title       string
-	Completed   bool
+	Description string
+	Status      Status
 	CreatedAt   time.Time
-	CompletedAt *time.Time
+	UpdatedAt   time.Time
 }
 
 type Todos []Todo
 
-func (todos *Todos) print() {
+func (todos *Todos) list(status Status) {
 	table := table.New(os.Stdout)
 	table.SetRowLines(false)
-	table.SetHeaders("#", "Title", "Completed", "Created At", "Completed At")
+	table.SetHeaders("id", "Description", "Status", "Created At", "Updated At")
 
 	for index, todo := range *todos {
-		completed := "❌"
-		completedAt := ""
-
-		if todo.Completed {
-			completed = "✅"
-			if todo.CompletedAt != nil {
-				completedAt = todo.CompletedAt.Format(time.RFC1123)
-			}
+		if status == "" || todo.Status == status {
+			table.AddRow(strconv.Itoa(index), todo.Description, string(todo.Status), todo.CreatedAt.Format(time.RFC1123), todo.UpdatedAt.Format(time.RFC1123))
 		}
-
-		table.AddRow(strconv.Itoa(index), todo.Title, completed, todo.CreatedAt.Format(time.RFC1123), completedAt)
 	}
 
 	table.Render()
 }
 
-func (todos *Todos) add(title string) {
+func (todos *Todos) add(description string) {
+	now := time.Now()
 	todo := Todo{
-		Title:       title,
-		Completed:   false,
-		CompletedAt: nil,
-		CreatedAt:   time.Now(),
+		Description: description,
+		Status:      StatusTodo,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 
 	*todos = append(*todos, todo)
+
+	// Todo: Change static ID
+	fmt.Println("Task added successfully (ID: 1)")
 }
 
 func (todos *Todos) validateIndex(index int) error {
@@ -74,32 +78,37 @@ func (todos *Todos) delete(index int) error {
 	return nil
 }
 
-func (todos *Todos) toggle(index int) error {
-	t := *todos
+func (todos *Todos) edit(index int, newDescription string) error {
 
 	if err := todos.validateIndex(index); err != nil {
 		return err
 	}
 
-	isCompleted := t[index].Completed
-
-	if !isCompleted {
-		completionTime := time.Now()
-		t[index].CompletedAt = &completionTime
-	}
-
-	t[index].Completed = !isCompleted
+	(*todos)[index].Description = newDescription
+	(*todos)[index].UpdatedAt = time.Now()
 
 	return nil
 }
 
-func (todos *Todos) edit(index int, newTitle string) error {
+func (todos *Todos) markInProgress(index int) error {
+	if err := todos.validateIndex(index); err != nil {
+		return err
+	}
+
+	(*todos)[index].Status = StatusInProgress
+	(*todos)[index].UpdatedAt = time.Now()
+
+	return nil
+}
+
+func (todos *Todos) markDone(index int) error {
 
 	if err := todos.validateIndex(index); err != nil {
 		return err
 	}
 
-	(*todos)[index].Title = newTitle
+	(*todos)[index].Status = StatusDone
+	(*todos)[index].UpdatedAt = time.Now()
 
 	return nil
 }

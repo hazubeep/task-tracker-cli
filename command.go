@@ -1,61 +1,93 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 )
 
-type CmdFlags struct {
-	Add    string
-	Edit   string
-	Del    int
-	Toggle int
-	List   bool
-}
+func Execute(todos *Todos) {
 
-func NewCmdFlags() *CmdFlags {
-	cf := CmdFlags{}
+	if len(os.Args) < 2 {
+		fmt.Println(`usage:
+  todo-cli list <status>
+  todo-cli add <description>
+  todo-cli edit <id> <description>
+  todo-cli delete <id>
+  todo-cli mark-done <id>
+  todo-cli mark-in-progress <id>
+	`)
+		return
+	}
 
-	flag.StringVar(&cf.Add, "add", "", "Add a new todo specify title")
-	flag.StringVar(&cf.Edit, "edit", "", "Edit a by index & specify a new title. id:new_title")
-	flag.IntVar(&cf.Del, "delete", -1, "Specify a todo by index to delete")
-	flag.IntVar(&cf.Toggle, "toggle", -1, "Specify a todo by index to toggle")
-	flag.BoolVar(&cf.List, "list", false, "List all todos")
+	command := os.Args[1]
 
-	flag.Parse()
+	switch command {
+	case "list":
 
-	return &cf
-}
+		if len(os.Args) == 2 {
 
-func (cf *CmdFlags) Execute(todos *Todos) {
-	switch {
-	case cf.List:
-		todos.print()
-	case cf.Add != "":
-		todos.add(cf.Add)
-	case cf.Edit != "":
-		parts := strings.SplitN(cf.Edit, ":", 2)
-		if len(parts) != 2 {
-			fmt.Println("Error, invalid format for edit. Please use id:new_title")
-			os.Exit(1)
+			todos.list(Status(""))
+			return
 		}
-		index, err := strconv.Atoi(parts[0])
+
+		status := os.Args[2]
+
+		todos.list(Status(status))
+
+	case "add":
+		if len(os.Args) < 3 {
+			fmt.Printf("Usage: app %s <id>\n", command)
+			return
+		}
+		description := strings.Join(os.Args[2:], " ")
+		todos.add(description)
+
+	case "delete", "mark-in-progress", "mark-done":
+		if len(os.Args) < 3 {
+			fmt.Printf("Usage: app %s <id>", command)
+			return
+		}
+
+		index, err := strconv.Atoi(os.Args[2])
 
 		if err != nil {
-			fmt.Println("Error: invalid index for edit")
-			os.Exit(1)
+			fmt.Printf("Invalid ID")
+			return
 		}
 
-		todos.edit(index, parts[1])
+		if command == "delete" {
+			todos.delete(index)
 
-	case cf.Toggle != -1:
-		todos.toggle(cf.Toggle)
-	case cf.Del != -1:
-		todos.delete(cf.Del)
+		}
+		if command == "mark-in-progress" {
+			todos.markInProgress(index)
+
+		}
+		if command == "mark-done" {
+			todos.markDone(index)
+
+		}
+
+	case "edit":
+		if len(os.Args) < 4 {
+			fmt.Printf("Usage: app %s <id> <description>", command)
+			return
+		}
+
+		index, err := strconv.Atoi(os.Args[2])
+
+		if err != nil {
+			fmt.Printf("Invalid ID")
+			return
+		}
+
+		description := strings.Join(os.Args[3:], " ")
+
+		todos.edit(index, description)
+
 	default:
-		fmt.Println("Invalid command")
+		fmt.Printf("invalid command")
 	}
 }
