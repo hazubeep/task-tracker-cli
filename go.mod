@@ -1,4 +1,4 @@
-module github.com/hazubeep/todo-cli
+module github.com/hazubeep/task-tracker-cli
 
 go 1.26.2
 
