@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -19,6 +18,7 @@ const (
 )
 
 type Todo struct {
+	ID          int
 	Description string
 	Status      Status
 	CreatedAt   time.Time
@@ -32,9 +32,9 @@ func (todos *Todos) list(status Status) {
 	table.SetRowLines(false)
 	table.SetHeaders("id", "Description", "Status", "Created At", "Updated At")
 
-	for index, todo := range *todos {
+	for _, todo := range *todos {
 		if status == "" || todo.Status == status {
-			table.AddRow(strconv.Itoa(index), todo.Description, string(todo.Status), todo.CreatedAt.Format(time.RFC1123), todo.UpdatedAt.Format(time.RFC1123))
+			table.AddRow(strconv.Itoa(todo.ID), todo.Description, string(todo.Status), todo.CreatedAt.Format(time.RFC1123), todo.UpdatedAt.Format(time.RFC1123))
 		}
 	}
 
@@ -44,6 +44,7 @@ func (todos *Todos) list(status Status) {
 func (todos *Todos) add(description string) {
 	now := time.Now()
 	todo := Todo{
+		ID:          todos.getNextId(),
 		Description: description,
 		Status:      StatusTodo,
 		CreatedAt:   now,
@@ -53,34 +54,28 @@ func (todos *Todos) add(description string) {
 	*todos = append(*todos, todo)
 
 	// Todo: Change static ID
-	fmt.Println("Task added successfully (ID: 1)")
+	fmt.Printf("Task added successfully (ID: %s)", strconv.Itoa(todos.getNextId()))
 }
 
-func (todos *Todos) validateIndex(index int) error {
-	if index < 0 || index >= len(*todos) {
-		err := errors.New("Invalid index")
-		fmt.Println(err)
+func (todos *Todos) delete(id int) error {
+
+	index, err := todos.findById(id)
+
+	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func (todos *Todos) delete(index int) error {
 	t := *todos
-
-	if err := t.validateIndex(index); err != nil {
-		return err
-	}
-
 	*todos = append(t[:index], t[index+1:]...)
 
 	return nil
 }
 
-func (todos *Todos) edit(index int, newDescription string) error {
+func (todos *Todos) edit(id int, newDescription string) error {
 
-	if err := todos.validateIndex(index); err != nil {
+	index, err := todos.findById(id)
+
+	if err != nil {
 		return err
 	}
 
@@ -90,8 +85,11 @@ func (todos *Todos) edit(index int, newDescription string) error {
 	return nil
 }
 
-func (todos *Todos) markInProgress(index int) error {
-	if err := todos.validateIndex(index); err != nil {
+func (todos *Todos) markInProgress(id int) error {
+
+	index, err := todos.findById(id)
+
+	if err != nil {
 		return err
 	}
 
@@ -101,9 +99,11 @@ func (todos *Todos) markInProgress(index int) error {
 	return nil
 }
 
-func (todos *Todos) markDone(index int) error {
+func (todos *Todos) markDone(id int) error {
 
-	if err := todos.validateIndex(index); err != nil {
+	index, err := todos.findById(id)
+
+	if err != nil {
 		return err
 	}
 
@@ -111,4 +111,25 @@ func (todos *Todos) markDone(index int) error {
 	(*todos)[index].UpdatedAt = time.Now()
 
 	return nil
+}
+
+func (todos *Todos) getNextId() int {
+	maxID := 0
+
+	for _, todo := range *todos {
+		if todo.ID > maxID {
+			maxID = todo.ID
+		}
+	}
+
+	return maxID + 1
+}
+
+func (todos *Todos) findById(id int) (int, error) {
+	for i, todo := range *todos {
+		if todo.ID == id {
+			return i, nil
+		}
+	}
+	return -1, fmt.Errorf("ID not found")
 }
