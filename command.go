@@ -88,6 +88,6 @@ func Execute(todos *Todos) {
 		todos.edit(index, description)
 
 	default:
-		fmt.Printf("invalid command")
+		fmt.Println("invalid command")
 	}
 }
